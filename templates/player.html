@@ -1,0 +1,91 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>__TITLE__</title>
+<style>
+:root{--bg:#0b0d12;--fg:#f4f4f5;--muted:#a1a1aa;--accent:__ACCENT__}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#0b0d12;--fg:#f4f4f5}}
+:root[data-theme="dark"]{--bg:#0b0d12;--fg:#f4f4f5}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,sans-serif;overflow:hidden}
+#stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:12px}
+canvas#view{height:min(100%,calc((100vw - 24px) * 16 / 9));aspect-ratio:9/16;border-radius:14px;background:#000;box-shadow:0 10px 40px #0008;cursor:pointer}
+#hint{position:fixed;left:16px;top:12px;color:var(--muted);font-size:12px}
+video{display:none}
+#pp{position:fixed;left:12px;top:34px;z-index:20;padding:9px 14px;border-radius:10px;border:0;background:var(--accent);color:#111;font-weight:800;cursor:pointer}
+#ppm{position:fixed;inset:0;z-index:10001;background:rgba(6,10,18,.92);overflow:auto;padding:16px}
+#ppm .box{max-width:560px;margin:0 auto;background:#151922;border-radius:14px;padding:16px 16px 20px;position:relative}
+#ppm h2{margin:0 0 10px;font-size:18px} #ppm h3{margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+#ppm pre{white-space:pre-wrap;background:#0b0d12;border-radius:8px;padding:10px;margin:0;font:13px/1.45 system-ui,sans-serif}
+#ppm .row{display:flex;gap:8px;align-items:flex-start} #ppm .row pre{flex:1}
+#ppm .cp,#ppx,#ppm .dl{border:1px solid #ffffff33;background:transparent;color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer;font-weight:600}
+#ppx{position:absolute;right:12px;top:12px} #ppm img{width:100%;max-width:260px;border-radius:10px;display:block}
+</style></head><body>
+<div id="stage"><canvas id="view" width="1080" height="1920"></canvas></div>
+<div id="hint">Tap the video to preview · renders on your device</div>
+<button id="pp" hidden>📦 Publish pack</button>
+<div id="ppm" hidden><div class="box"><button id="ppx" aria-label="Close">✕</button><h2>Publish pack</h2><div id="ppc"></div></div></div>
+<script src="mg.js"></script>
+<script>
+const EDIT = __EDIT__;
+const cv = document.getElementById('view'), ctx = cv.getContext('2d');
+const vids = EDIT.chunks.map((c) => { const v = document.createElement('video'); v.src = c.file; v.muted = true; v.playsInline = true; v.preload = 'auto'; v.crossOrigin = 'anonymous'; document.body.appendChild(v); return v; });
+const CH = EDIT.chunkDur;
+function seek(t) {
+  const i = Math.min(vids.length - 1, Math.floor(t / CH)), v = vids[i], lt = Math.min(t - i * CH, (EDIT.chunks[i].dur || CH) - 0.02);
+  if (Math.abs(v.currentTime - lt) < 0.004 && v.readyState >= 2) return Promise.resolve(v);
+  return new Promise((res) => { const done = () => { v.removeEventListener('seeked', done); res(v); }; v.addEventListener('seeked', done); v.currentTime = Math.max(0, lt); setTimeout(done, 1500); });
+}
+function compose(v, t) {
+  const W = cv.width, H = cv.height, s = W / 1080;
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  if (v && v.readyState >= 2) ctx.drawImage(v, 0, 0, W, H);
+  ctx.setTransform(s, 0, 0, s, 0, 0);
+  for (const g of EDIT.graphics) if (t >= g.at && t < g.at + g.dur) MG.draw(ctx, g, t - g.at, EDIT.accent);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+// Publish pack (titles, description, tags, pinned comment, thumbnail)
+if (EDIT.publish) {
+  const P = EDIT.publish, $p = (id) => document.getElementById(id), esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  const row = (label, text) => `<h3>${label}</h3><div class="row"><pre>${esc(text)}</pre><button class="cp" data-t="${encodeURIComponent(text)}">Copy</button></div>`;
+  $p('ppc').innerHTML = `<h3>Thumbnail</h3><img src="${P.thumb}" alt="Thumbnail"><p><button class="dl">⬇ Save thumbnail</button></p>` +
+    P.titles.map((t, i) => row(i === P.best ? 'Title ⭐ best' : 'Title option ' + (i + 1), t)).join('') + row('Description + hashtags', P.description) + row('Tags', P.tags.join(', ')) + row('Pinned comment', P.pinned);
+  $p('pp').hidden = false; $p('pp').onclick = () => ($p('ppm').hidden = false); $p('ppx').onclick = () => ($p('ppm').hidden = true);
+  $p('ppc').addEventListener('click', async (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.classList.contains('cp')) { try { await navigator.clipboard.writeText(decodeURIComponent(b.dataset.t)); b.textContent = 'Copied ✓'; } catch { b.textContent = 'Select & copy'; } }
+    if (b.classList.contains('dl')) { const blob = await (await fetch(P.thumb)).blob(); let dl = null; try { dl = await window.claude?.use?.('downloads'); } catch {}
+      if (dl) { try { await dl.save({ filename: 'thumbnail.png', data: blob }); b.textContent = 'Saved ✓'; } catch { b.textContent = 'Long-press the image to save'; } }
+      else { const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'thumbnail.png' }); a.click(); } }
+  });
+}
+let ready = false;
+Promise.all(vids.map((v) => new Promise((r) => { if (v.readyState >= 2) r(); else { v.addEventListener('loadeddata', r, { once: true }); setTimeout(r, 20000); } }))).then(async () => { ready = true; compose(await seek(0.05), 0.05); window.__mfReady = true; });
+window.__mfReady = false;
+let audioBuf = null;
+async function soundtrack() { if (!audioBuf) { const ab = await (await fetch(EDIT.mix)).arrayBuffer(); audioBuf = await new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(2, 48000, 48000).decodeAudioData(ab); } return audioBuf; }
+// live preview (tap): real-time playback synced to the soundtrack
+let live = null;
+cv.onclick = async () => {
+  if (window.__mfManual) return;
+  if (live) { live.ctx.close(); vids.forEach((v) => v.pause()); live = null; return; }
+  const buf = await soundtrack(), ac = new AudioContext(), src = ac.createBufferSource(); src.buffer = buf; src.connect(ac.destination); src.start();
+  live = { ctx: ac, t0: ac.currentTime }; let cur = -1;
+  const loop = () => { if (!live || window.__mfManual) return; const t = ac.currentTime - live.t0; if (t >= EDIT.duration) { cv.onclick(); return; }
+    const i = Math.min(vids.length - 1, Math.floor(t / CH)), v = vids[i];
+    if (i !== cur) { vids.forEach((x) => x.pause()); v.currentTime = t - i * CH; v.play().catch(() => {}); cur = i; }
+    else if (Math.abs(v.currentTime - (t - i * CH)) > 0.25) v.currentTime = t - i * CH;
+    compose(v, t); requestAnimationFrame(loop); };
+  loop();
+};
+window.__mf = {
+  duration: EDIT.duration, width: 1080, height: 1920, fps: 30, canvas: cv, quality: EDIT.quality, autoRender: EDIT.autoRender !== false,
+  setSize(w, h) { cv.width = w; cv.height = h; },
+  async render(t) { if (live) cv.onclick(); compose(await seek(t), t); },
+  soundtrack, restart() { // panel "Preview with sound": it plays the soundtrack, we play the picture on the same clock
+    if (live) cv.onclick(); const t0 = performance.now(); let cur = -1; vids.forEach((x) => x.pause()); const me = Symbol(); window.__pv = me;
+    const loop = () => { if (window.__pv !== me || window.__mfManual || live) return; const t = ((performance.now() - t0) / 1000) % EDIT.duration, i = Math.min(vids.length - 1, Math.floor(t / CH)), v = vids[i];
+      if (i !== cur) { vids.forEach((x) => x.pause()); v.currentTime = t - i * CH; v.play().catch(() => {}); cur = i; } else if (Math.abs(v.currentTime - (t - i * CH)) > 0.25) v.currentTime = t - i * CH;
+      compose(v, t); requestAnimationFrame(loop); };
+    loop(); },
+};
+</script>
+__PANEL__
+</body></html>

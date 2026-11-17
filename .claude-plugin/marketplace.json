@@ -1,0 +1,5 @@
+{
+  "name": "smp-shorts-marketplace",
+  "owner": { "name": "smp-shorts" },
+  "plugins": [{ "name": "smp-shorts", "source": "./", "description": "Send an Unstable SMP video, get a finished short: real lore, voice, captions, motion graphics, 3 review rounds, publish pack, device render." }]
+}

@@ -1,0 +1,184 @@
+<!-- motion-forge DEVICE RENDER PANEL — paste before </body> of any scene exposing window.__mf.
+     Renders frame-perfect on the viewer's own GPU (WebCodecs) and downloads MP4s. No server, no Python.
+     Long-form: set __mf.chapters = [{name, start, end}] → each chapter renders to its own file (iPad-safe memory). -->
+<div id="mf-panel" style="position:fixed;right:12px;bottom:12px;z-index:9999;font:13px/1.4 system-ui,sans-serif;color:#fff;background:rgba(10,20,35,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:12px;padding:12px 14px;width:min(300px,calc(100vw - 48px));box-shadow:0 8px 30px rgba(0,0,0,.35)">
+  <b style="font-size:14px">Render on this device</b>
+  <div id="mf-specs" style="opacity:.8;margin:6px 0 8px;font-size:12px"></div>
+  <label>Quality <select id="mf-q" style="width:100%;margin:4px 0 8px;padding:4px;border-radius:6px"></select></label>
+  <label id="mf-chl" style="display:none">Part <select id="mf-ch" style="width:100%;margin:4px 0 8px;padding:4px;border-radius:6px"></select></label>
+  <button id="mf-play" style="width:100%;padding:7px;border:1px solid #ffffff33;border-radius:8px;background:transparent;color:#fff;font-weight:600;cursor:pointer;margin-bottom:6px">▶ Preview with sound</button>
+  <button id="mf-go" style="width:100%;padding:8px;border:0;border-radius:8px;background:#22d3ee;color:#04202a;font-weight:700;cursor:pointer">Render MP4</button>
+  <div id="mf-bar" style="height:6px;background:#ffffff22;border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;width:0;background:#22d3ee"></div></div>
+  <div id="mf-msg" style="font-size:12px;margin-top:6px;opacity:.85"></div>
+</div>
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const msg = (t) => ($('mf-msg').textContent = t);
+// --- Read device specs ---
+const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 4;
+let gpu = 'unknown GPU';
+try { const gl = document.createElement('canvas').getContext('webgl'); const ext = gl.getExtension('WEBGL_debug_renderer_info');
+  gpu = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER); } catch {}
+const apple = /apple/i.test(gpu) || /iPad|iPhone|Macintosh/.test(navigator.userAgent);
+const weakGpu = /intel|mali|adreno [1-5]|powervr|swiftshader|llvmpipe/i.test(gpu);
+const tier = (!weakGpu && (apple || (cores >= 8 && mem >= 8))) ? 2 : (cores >= 4 && mem >= 4) ? 1 : 0;
+$('mf-specs').textContent = `${cores} cores · ${mem}GB+ RAM · ${gpu.replace(/ANGLE \(|\)$/g, '').slice(0, 60)}`;
+
+const base = window.__mf || {}, W = base.width || 1080, H = base.height || 1920;
+const presets = [
+  { name: 'Good', s: 1, fps: 30 },
+  { name: 'High', s: 1, fps: 60 },
+  { name: 'Epic', s: 4 / 3, fps: 60 },
+];
+const dims = (p) => [Math.round(W * p.s / 2) * 2, Math.round(H * p.s / 2) * 2];
+$('mf-q').add(new Option('Choose quality…', ''));
+presets.forEach((p, i) => { const [w, h] = dims(p); $('mf-q').add(new Option(`${p.name} — ${w}×${h} @ ${p.fps}fps` + (i === tier ? '  ★ best for your device' : ''), i)); });
+$('mf-q').value = '';
+
+// Parts (chapters) for long-form
+const chapters = Array.isArray(base.chapters) && base.chapters.length ? base.chapters : null;
+if (chapters) {
+  $('mf-chl').style.display = '';
+  $('mf-ch').add(new Option(`All ${chapters.length} parts (one file each)`, 'all'));
+  chapters.forEach((c, i) => $('mf-ch').add(new Option(`Part ${i + 1}: ${c.name} (${Math.floor((c.end - c.start) / 60)}:${String(Math.round((c.end - c.start) % 60)).padStart(2, '0')})`, i)));
+}
+
+let encoderPick;
+async function pickEncoder(w, h, fps, br) {
+  const cands = [{ c: 'avc1.640033', m: 'avc' }, { c: 'avc1.4d0033', m: 'avc' }, { c: 'vp09.00.50.08', m: 'vp9' }];
+  for (const k of cands) for (const hw of ['prefer-hardware', 'no-preference']) {
+    const cfg = { codec: k.c, width: w, height: h, bitrate: br, framerate: fps, hardwareAcceleration: hw };
+    try { if ((await VideoEncoder.isConfigSupported(cfg)).supported) return { ...k, cfg }; } catch {}
+  }
+}
+
+let audioPick = null, soundtrack = null;
+async function pickAudio() {   // AAC preferred (plays everywhere), Opus fallback
+  if (!('AudioEncoder' in window)) return null;
+  for (const [codec, m] of [['mp4a.40.2', 'aac'], ['opus', 'opus']]) {
+    const cfg = { codec, sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 };
+    try { if ((await AudioEncoder.isConfigSupported(cfg)).supported) return { cfg, m }; } catch {}
+  }
+  return null;
+}
+async function renderRange(mf, canvas, start, end, label, p, w, h, Muxer, ArrayBufferTarget) {
+  const target = new ArrayBufferTarget();
+  const muxer = new Muxer({ target, video: { codec: encoderPick.m, width: w, height: h, frameRate: p.fps }, ...(soundtrack && audioPick ? { audio: { codec: audioPick.m, numberOfChannels: 2, sampleRate: soundtrack.sampleRate } } : {}), fastStart: 'in-memory' });
+  let failed;
+  const enc = new VideoEncoder({ output: (ch, meta) => muxer.addVideoChunk(ch, meta), error: (e) => (failed = e) });
+  OPEN.push(enc); enc.configure(encoderPick.cfg);
+  const total = Math.round((end - start) * p.fps), t0 = performance.now();
+  for (let f = 0; f < total; f++) {
+    if (failed) throw failed;
+    await mf.render(start + f / p.fps);
+    const frame = new VideoFrame(canvas, { timestamp: Math.round(f * 1e6 / p.fps), duration: Math.round(1e6 / p.fps) });
+    enc.encode(frame, { keyFrame: f % (p.fps * 2) === 0 }); frame.close();
+    while (enc.encodeQueueSize > 8) await new Promise((r) => setTimeout(r, 1));
+    if (f % 5 === 0) {
+      const pct = (f + 1) / total, eta = (performance.now() - t0) / pct * (1 - pct) / 1000;
+      $('mf-bar').firstElementChild.style.width = (pct * 100).toFixed(1) + '%';
+      msg(`${label} · frame ${f + 1}/${total} · ~${Math.ceil(eta)}s left`);
+      await new Promise((r) => { requestAnimationFrame(r); setTimeout(r, 60); });   // rAF alone never fires in a background tab → the render would hang
+    }
+  }
+  await enc.flush(); enc.close(); if (failed) throw failed;
+  if (soundtrack && audioPick) {   // the edit's soundtrack for exactly this range
+    msg(label + ' · mixing sound…');
+    const ae = new AudioEncoder({ output: (ch, meta) => muxer.addAudioChunk(ch, meta), error: (e) => (failed = e) }); OPEN.push(ae); ae.configure({ ...audioPick.cfg, sampleRate: soundtrack.sampleRate });
+    const sr = soundtrack.sampleRate, a0 = Math.floor(start * sr), a1 = Math.min(soundtrack.length, Math.ceil(end * sr)), L = soundtrack.getChannelData(0), Rr = soundtrack.numberOfChannels > 1 ? soundtrack.getChannelData(1) : L;   // mono soundtrack → both sides
+    for (let i = a0; i < a1; i += 1024) { const n = Math.min(1024, a1 - i), data = new Float32Array(n * 2); data.set(L.subarray(i, i + n), 0); data.set(Rr.subarray(i, i + n), n);
+      const ad = new AudioData({ format: 'f32-planar', sampleRate: sr, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round((i - a0) / sr * 1e6), data }); ae.encode(ad); ad.close(); }
+    await ae.flush(); ae.close(); if (failed) throw failed;
+  }
+  muxer.finalize();
+  const blob = new Blob([target.buffer], { type: 'video/mp4' }), url = URL.createObjectURL(blob);
+  const file = `${(document.title || 'render').replace(/\W+/g, '-')}${label === 'Video' ? '' : '-' + label.replace(/\W+/g, '-')}.mp4`;
+  results.push({ label, url, file, blob });
+  if (!DL) try { const a = Object.assign(document.createElement('a'), { href: url, download: file }); document.body.appendChild(a); a.click(); a.remove(); } catch {}   // saves by itself where the browser allows it; the finished video is also shown on the page
+}
+const results = [], OPEN = [];   // OPEN: encoders of the current render — closed on failure so a retry at a lighter quality gets a free hardware encoder
+const closeOpen = () => { for (const e of OPEN.splice(0)) try { if (e.state !== 'closed') e.close(); } catch {} };
+let wake = null; const keepAwake = async (on) => { try { if (on) wake = await navigator.wakeLock?.request('screen'); else { await wake?.release(); wake = null; } } catch {} };   // phones must not sleep mid-render
+let DL = null;   // claude.ai artifact: files are saved through the downloads capability (declare capabilities: { downloads: true })
+try { window.claude?.use?.('downloads').then((d) => { DL = d; }).catch(() => {}); } catch {}
+async function saveResult(r, btn) {
+  if (!DL) try { DL = await window.claude?.use?.('downloads') ?? null; } catch {}
+  if (DL) { try { await DL.save({ filename: r.file, data: r.blob }); btn.textContent = 'Saved ✓'; } catch (e) { if (e?.code === 'rate_limited') btn.textContent = 'Try again in a moment'; else if (e?.code !== 'declined') btn.textContent = 'Saving unavailable here'; } return; }
+  const a = Object.assign(document.createElement('a'), { href: r.url, download: r.file }); document.body.appendChild(a); a.click(); a.remove();
+}
+function showResults(secs) {   // the finished video, playing on the page, with a save button (pages inside an app can't always download by themselves)
+  $('mf-done')?.remove(); const single = results.length === 1, box = document.createElement('div'); box.id = 'mf-done';
+  box.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(6,10,18,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;font:14px/1.4 system-ui,sans-serif;color:#fff';
+  const btn = 'padding:12px 22px;border-radius:10px;background:#22d3ee;color:#04202a;font-weight:800;text-decoration:none;font-size:15px;border:0;cursor:pointer';
+  box.innerHTML = '<b style="font-size:16px">Your video is ready</b>' + (single ? '<video controls playsinline loop style="max-width:100%;max-height:68vh;border-radius:12px;background:#000"></video>' : '') +
+    '<div id="mf-links" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div><div style="opacity:.7;font-size:12px">Rendered on this device in ' + secs + 's</div><button id="mf-close" style="' + btn + ';background:transparent;color:#fff;border:1px solid #ffffff44;font-weight:600;font-size:13px;padding:8px 16px">Back to the scene</button>';
+  document.body.appendChild(box); if (single) box.querySelector('video').src = results[0].url;
+  for (const r of results) { const b = Object.assign(document.createElement('button'), { textContent: single ? '⬇ Download MP4' : '⬇ Download ' + r.label }); b.style.cssText = btn; b.onclick = () => saveResult(r, b); box.querySelector('#mf-links').appendChild(b); }
+  box.querySelector('#mf-close').onclick = () => { box.querySelector('video')?.pause(); box.remove(); };
+}
+
+let liveAudio = null;
+$('mf-play').onclick = async () => {
+  const mf = window.__mf; if (!mf?.soundtrack) return;
+  if (liveAudio) { liveAudio.ctx.close(); liveAudio = null; $('mf-play').textContent = '▶ Preview with sound'; return; }
+  $('mf-play').textContent = 'Preparing sound…';
+  try { const buf = await mf.soundtrack(), ctx = new AudioContext(), src = ctx.createBufferSource(); src.buffer = buf; src.loop = true; src.loopEnd = mf.duration; src.connect(ctx.destination);
+    mf.restart?.(); src.start(); liveAudio = { ctx }; $('mf-play').textContent = '■ Stop preview'; } catch (e) { $('mf-play').textContent = '▶ Preview with sound'; msg('Sound preview failed: ' + (e.message || e)); }
+};
+let busy = false;
+async function loadMuxer() {   // MP4 writer: the copy published next to the page first (works offline / inside apps), then the public CDNs
+  for (const u of ['./mp4-muxer.mjs', '../vendor/mp4-muxer.mjs', '../../vendor/mp4-muxer.mjs', 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/+esm', 'https://unpkg.com/mp4-muxer@5.1.3/build/mp4-muxer.mjs', 'https://cdn.jsdelivr.net/gh/fahadisthegoat2-hub/motion-forge@main/vendor/mp4-muxer.mjs']) {
+    try { const m = await import(u); if (m?.Muxer) return m; } catch {} }
+  return null;
+}
+$('mf-go').onclick = () => run(false);
+async function run(isAuto) {
+  const mf = window.__mf; if (!mf) return msg('Scene not ready yet.'); if (busy) return;
+  if ($('mf-q').value === '') return msg('Pick Good, High or Epic first.');
+  if (!('VideoEncoder' in window)) return msg('This browser lacks WebCodecs — use Chrome, Edge or Safari 17+.');
+  const lower = () => { const i = +$('mf-q').value; if (isAuto && i > 0) { $('mf-q').value = i - 1; msg('Trying a lighter quality…'); setTimeout(() => run(true), 300); return true; } return false; };
+  const p = presets[$('mf-q').value], [w, h] = dims(p);
+  const br = Math.min(Math.round(w * h * p.fps * 0.15), 35e6);
+  encoderPick = await pickEncoder(w, h, p.fps, br);
+  if (!encoderPick) { if (!lower()) msg('No supported video encoder for this size — try a lower quality.'); return; }
+  busy = true; results.length = 0; $('mf-done')?.remove(); if (liveAudio) { liveAudio.ctx.close(); liveAudio = null; $('mf-play').textContent = '▶ Preview with sound'; }
+  const mux = await loadMuxer(); if (!mux) { busy = false; return msg('Could not load the MP4 writer (no connection?) — reload the page to try again.'); }
+  const { Muxer, ArrayBufferTarget } = mux;
+  soundtrack = mf.soundtrack ? await mf.soundtrack().catch(() => null) : null; audioPick = soundtrack ? await pickAudio() : null;
+  if (soundtrack && !audioPick) msg('This browser cannot encode audio — the MP4 will be silent. Use Chrome/Edge or Safari 17.4+.');
+
+  const sel = chapters ? $('mf-ch').value : null;
+  const jobs = !chapters ? [{ start: 0, end: mf.duration, label: 'Video' }]
+    : sel === 'all' ? chapters.map((c, i) => ({ start: c.start, end: c.end, label: `Part ${i + 1}` }))
+    : [{ start: chapters[sel].start, end: chapters[sel].end, label: `Part ${+sel + 1}` }];
+
+  window.__mfManual = true; $('mf-go').disabled = true; $('mf-panel').style.opacity = isAuto ? 1 : .35;
+  const canvas = mf.canvas || document.querySelector('canvas');
+  mf.setSize ? mf.setSize(w, h) : (canvas.width = w, canvas.height = h);
+  const t0 = performance.now(); keepAwake(true);
+  try {
+    for (const j of jobs) {
+      await renderRange(mf, canvas, j.start, j.end, j.label, p, w, h, Muxer, ArrayBufferTarget);
+      if (jobs.length > 1) await new Promise((r) => setTimeout(r, 1500)); // let the download start
+    }
+    $('mf-bar').firstElementChild.style.width = '100%';
+    msg(`Done in ${((performance.now() - t0) / 1000).toFixed(0)}s — ${jobs.length > 1 ? jobs.length + ' MP4 parts' : 'MP4'} ready.` +
+      (jobs.length > 1 ? ' Join them in CapCut or iMovie in order.' : ''));
+    showResults(((performance.now() - t0) / 1000).toFixed(0));
+  } catch (e) { closeOpen(); keepAwake(false); busy = false; window.__mfManual = false; $('mf-go').disabled = false; $('mf-panel').style.opacity = 1; dispatchEvent(new Event('resize'));
+    if (!lower()) msg('Render stopped: ' + (e.message || e) + ' — try a lower quality or one part at a time.'); return; }
+  closeOpen(); keepAwake(false); busy = false; window.__mfManual = false; $('mf-go').disabled = false; $('mf-panel').style.opacity = 1;
+  dispatchEvent(new Event('resize'));
+}
+// AUTO-RENDER: as soon as the scene has loaded, the page renders the MP4 by itself on this device — at the quality chosen for the video
+// (CONFIG.quality), capped by what this device can do, stepping down if the encoder refuses. Nothing to click.
+// Off with CONFIG.autoRender = false or ?preview in the address; never runs in the automatic QA/cloud renderer.
+(async () => {
+  const qs = new URLSearchParams(location.search); if (qs.has('fast') || qs.has('preview') || navigator.webdriver) return;
+  const t0 = performance.now(); while (!window.__mf || window.__mfReady === false) { if (performance.now() - t0 > 600000) return; await new Promise((r) => setTimeout(r, 300)); }
+  if (window.__mf.autoRender === false || window.__mfManual || busy) return;
+  const want = { good: 0, high: 1, epic: 2 }[String(window.__mf.quality || '').toLowerCase()];
+  $('mf-q').value = String(want === undefined ? tier : Math.min(want, Math.max(tier, 0) + 1));   // at most one step above what the device is rated for
+  msg('Rendering your video on this device…'); await new Promise((r) => setTimeout(r, 600)); run(true);
+})();
+</script>

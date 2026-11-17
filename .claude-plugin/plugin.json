@@ -1,0 +1,7 @@
+{
+  "name": "smp-shorts",
+  "version": "1.0.0",
+  "description": "Edits Unstable SMP (Minecraft SMP) footage into viral vertical shorts: finds the moments worth keeping, renders its own motion graphics first, cuts the edit last, and writes it straight into a CapCut PC project by name.",
+  "keywords": ["minecraft", "smp", "shorts", "capcut", "motion-graphics", "auto-edit", "highlights"],
+  "license": "MIT"
+}
