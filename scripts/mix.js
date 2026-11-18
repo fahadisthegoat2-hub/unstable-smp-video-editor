@@ -32,7 +32,7 @@ async function buildMix(edit, dir, vo) {
   }
   const hits = edit.graphics.filter((g) => MAP[g.type]).slice(0, 60), labels = [];
   for (const [k, g] of hits.entries()) {
-    args.push('-i', path.join(sdir, MAP[g.type] + '.wav')); const ii = inputs++, ms = Math.max(0, Math.round((g.at - (MAP[g.type] === 'whoosh' ? 0.15 : 0)) * 1000));
+    args.push('-i', path.join(sdir, MAP[g.type] + '.wav')); const ii = inputs++, ms = Math.max(0, Math.round((g.at - (MAP[g.type] === "whoosh" ? 0.15 : 0)) * 1000) || 0);
     f.push(`[${ii}:a]adelay=${ms}|${ms},volume=${MAP[g.type] === 'boom' ? 0.8 : 0.55}[x${k}]`); labels.push(`[x${k}]`);
   }
   const all = [bus, ...(vo ? ['[vox]'] : []), ...labels];
