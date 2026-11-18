@@ -12,11 +12,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:24:13.842Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.898Z",
+   "lastUsed": "2026-11-18T06:16:45.923Z",
    "thumb": "thumbs/blocktitle-the-nether-invaded-6f65.png"
   },
   {
@@ -30,11 +30,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:24:22.245Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.899Z",
+   "lastUsed": "2026-11-18T06:16:45.924Z",
    "thumb": "thumbs/explode3d-1a03.png"
   },
   {
@@ -102,11 +102,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:25:03.527Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.899Z",
+   "lastUsed": "2026-11-18T06:16:45.928Z",
    "thumb": "thumbs/focus-8f35.png"
   },
   {
@@ -119,11 +119,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:25:04.298Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.900Z",
+   "lastUsed": "2026-11-18T06:16:45.929Z",
    "thumb": "thumbs/shockwave-9161.png"
   },
   {
@@ -195,11 +195,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:25:56.342Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.900Z",
+   "lastUsed": "2026-11-18T06:16:45.929Z",
    "thumb": "thumbs/explode3d-fa55.png"
   },
   {
@@ -250,11 +250,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:26:34.186Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.901Z",
+   "lastUsed": "2026-11-18T06:16:45.926Z",
    "thumb": "thumbs/portal3d-349d.png"
   },
   {
@@ -322,11 +322,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:27:26.895Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.902Z",
+   "lastUsed": "2026-11-18T06:16:45.931Z",
    "thumb": "thumbs/bolt-8ecb.png"
   },
   {
@@ -340,11 +340,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:27:27.854Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.902Z",
+   "lastUsed": "2026-11-18T06:16:45.931Z",
    "thumb": "thumbs/cta-follow-for-part-2-4704.png"
   },
   {
@@ -375,11 +375,11 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:29:41.530Z",
-   "uses": 2,
+   "uses": 4,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:40:55.213Z",
+   "lastUsed": "2026-11-18T06:18:33.037Z",
    "thumb": "thumbs/focus-11e6.png"
   },
   {
@@ -412,12 +412,216 @@
    },
    "accent": "#FFD23F",
    "created": "2026-11-18T05:39:04.874Z",
+   "uses": 3,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.925Z",
+   "thumb": "thumbs/sword3d-ee68.png"
+  },
+  {
+   "name": "embers-f292",
+   "key": "f292728c10d8fde2e8d2",
+   "type": "embers",
+   "params": {
+    "dur": 6,
+    "type": "embers"
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:03:13.798Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.924Z",
+   "thumb": "thumbs/embers-f292.png"
+  },
+  {
+   "name": "nametag3d-clownpierce-a7c8",
+   "key": "a7c8cecdc8853e1a6263",
+   "type": "nametag3d",
+   "params": {
+    "dur": 2,
+    "sub": "KING OF THE NETHER",
+    "text": "CLOWNPIERCE",
+    "type": "nametag3d"
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:03:22.330Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.924Z",
+   "thumb": "thumbs/nametag3d-clownpierce-a7c8.png"
+  },
+  {
+   "name": "crown3d-c990",
+   "key": "c99052f607542af9b3be",
+   "type": "crown3d",
+   "params": {
+    "dur": 2.6,
+    "type": "crown3d",
+    "y": 0.25
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:03:40.428Z",
    "uses": 1,
    "projects": [
     "smp_full SMP"
    ],
-   "lastUsed": "2026-11-18T05:39:04.874Z",
-   "thumb": "thumbs/sword3d-ee68.png"
+   "lastUsed": "2026-11-18T06:03:40.428Z",
+   "thumb": "thumbs/crown3d-c990.png"
+  },
+  {
+   "name": "nametag3d-parrot-d9e8",
+   "key": "d9e84723b3f12aee06e1",
+   "type": "nametag3d",
+   "params": {
+    "dur": 2.2,
+    "sub": "WARNED THE OVERWORLD",
+    "text": "PARROT",
+    "type": "nametag3d"
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:03:48.585Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.926Z",
+   "thumb": "thumbs/nametag3d-parrot-d9e8.png"
+  },
+  {
+   "name": "nametag3d-saparata-efce",
+   "key": "efceda67e9129a131c2b",
+   "type": "nametag3d",
+   "params": {
+    "dur": 2.2,
+    "sub": "ASKED TO ALLY",
+    "text": "SAPARATA",
+    "type": "nametag3d"
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:03:56.822Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.927Z",
+   "thumb": "thumbs/nametag3d-saparata-efce.png"
+  },
+  {
+   "name": "blocks3d-6f5f",
+   "key": "6f5f1d0997430eec7624",
+   "type": "blocks3d",
+   "params": {
+    "dur": 2.6,
+    "focus": 0,
+    "type": "blocks3d"
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:04:09.870Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.927Z",
+   "thumb": "thumbs/blocks3d-6f5f.png"
+  },
+  {
+   "name": "explode3d-2d76",
+   "key": "2d7621b06e49d8cb9799",
+   "type": "explode3d",
+   "params": {
+    "blocks": [
+     "stone",
+     "obsidian"
+    ],
+    "count": 50,
+    "dur": 1.1,
+    "type": "explode3d"
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:04:18.297Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.930Z",
+   "thumb": "thumbs/explode3d-2d76.png"
+  },
+  {
+   "name": "bolt-7764",
+   "key": "7764daaa4ff2d6bc973f",
+   "type": "bolt",
+   "params": {
+    "dur": 1,
+    "type": "bolt",
+    "y": 0.45
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:04:19.032Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.930Z",
+   "thumb": "thumbs/bolt-7764.png"
+  },
+  {
+   "name": "map3d-23e7",
+   "key": "23e7dfbe9104a62c72bb",
+   "type": "map3d",
+   "params": {
+    "dur": 3.4,
+    "keep": "Newtopia",
+    "type": "map3d"
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:04:57.698Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.930Z",
+   "thumb": "thumbs/map3d-23e7.png"
+  },
+  {
+   "name": "focus-73fd",
+   "key": "73fd90497b48db02a6cb",
+   "type": "focus",
+   "params": {
+    "color": "#000000",
+    "dur": 1.4,
+    "type": "focus"
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:04:58.800Z",
+   "uses": 2,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.930Z",
+   "thumb": "thumbs/focus-73fd.png"
+  },
+  {
+   "name": "crown3d-34ba",
+   "key": "34ba7d4d5b8ebb8f3928",
+   "type": "crown3d",
+   "params": {
+    "dur": 1.9,
+    "type": "crown3d",
+    "y": 0.25
+   },
+   "accent": "#FFD23F",
+   "created": "2026-11-18T06:16:45.879Z",
+   "uses": 1,
+   "projects": [
+    "smp_full SMP"
+   ],
+   "lastUsed": "2026-11-18T06:16:45.879Z",
+   "thumb": "thumbs/crown3d-34ba.png"
   }
  ]
 }
