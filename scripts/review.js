@@ -3,7 +3,7 @@
 // · pacing (no shot > 3 s, a pattern interrupt at least every 2.5 s, no dead air) · graphics never collide · loudness −14 LUFS ±1.5.
 const fs = require('fs'), path = require('path');
 const { run } = require('./lib/util');
-const ZONE = { hook: 'top', lore: 'top', chapter: 'top', nametag: 'mid', stamp: 'mid', pop: 'mid', counter: 'mid', marker: 'mid', cta: 'low', caption: 'cap', words: 'cap' };
+const ZONE = { hook: 'top', lore: 'top', chapter: 'top', nametag: 'mid', stamp: 'mid', pop: 'mid', counter: 'mid', marker: 'mid', crown: 'crown', dims: 'low', bar: 'low', march: 'low', cta: 'low', caption: 'cap', words: 'cap' };
 const MAXSHOT = 3.0, GAP = 2.5, MAXLEN = 45;
 
 async function measure(mp4) {

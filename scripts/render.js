@@ -20,7 +20,7 @@ async function renderShort(edit, out, layout = 'blur', fast = false, opts = {}) 
   const args = ['-y', '-hide_banner', '-loglevel', 'error', '-i', edit.source], f = cutFilters(edit, layout);
   let last = 'cv', n = 1;
   if (!opts.base) edit.graphics.filter((g) => g.file && fs.existsSync(g.file)).forEach((g, k) => {
-    args.push('-i', g.file); const idx = n++;
+    args.push('-threads', '1', '-thread_queue_size', '4', '-i', g.file); const idx = n++;
     f.push(`[${idx}:v]setpts=PTS-STARTPTS+${g.at}/TB[g${k}]`, `[${last}][g${k}]overlay=0:0:eof_action=pass:enable='between(t,${g.at},${(g.at + g.dur).toFixed(3)})'[o${k}]`);
     last = `o${k}`;
   });

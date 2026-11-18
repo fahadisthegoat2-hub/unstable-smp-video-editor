@@ -16,7 +16,7 @@ const SFX = {
   glitch(d = 0.4) { const a = new Float32Array(SR * d); for (let i = 0; i < a.length; i++) { const blk = Math.floor(i / 1400); a[i] = (blk % 3 ? Math.sign(Math.sin(i * (0.05 + (blk % 5) * 0.03))) * 0.35 : noise() * 0.4) * (1 - i / a.length); } return a; },
   tick(d = 0.12) { const a = new Float32Array(SR * d); for (let i = 0; i < a.length; i++) { const t = i / SR; a[i] = Math.sin(2 * Math.PI * (1400 - 4000 * t) * t) * Math.exp(-t * 45) * 0.7; } return a; },
 };
-const MAP = { hook: 'boom', flash: 'boom', stamp: 'boom', chapter: 'whoosh', nametag: 'whoosh', lore: 'whoosh', cta: 'whoosh', glitch: 'glitch', pop: 'tick', counter: 'tick', marker: 'tick' };
+const MAP = { hook: 'boom', flash: 'boom', stamp: 'boom', chapter: 'whoosh', nametag: 'whoosh', lore: 'whoosh', cta: 'whoosh', glitch: 'glitch', pop: 'tick', counter: 'tick', marker: 'tick', shockwave: 'boom', bolt: 'boom', cage: 'boom', portal: 'whoosh', march: 'whoosh', crown: 'tick', dims: 'tick', bar: 'tick', focus: 'whoosh' };
 
 async function buildMix(edit, dir, vo) {
   const sdir = path.join(dir, 'sfx'); fs.mkdirSync(sdir, { recursive: true });

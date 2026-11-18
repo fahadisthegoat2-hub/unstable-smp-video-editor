@@ -86,6 +86,7 @@ function voice(dir, scriptFile, v) {
     for (const c of edit.graphics.filter((g) => g.type === 'cta')) c.at = Math.max(0, +(edit.duration - c.dur).toFixed(3)); };
   const log3 = [];
   const pass = async (fast, label) => {
+    edit.graphics.sort((a, b) => (a.type === 'words') - (b.type === 'words') || a.at - b.at); // captions always drawn on top
     await renderGraphics(edit, path.join(out, 'graphics'));                    // 1) motion graphics first
     edit.mix = await buildMix(edit, out, edit.vo);                             // 2) sound
     const mp4 = await renderShort(edit, path.join(out, fast ? 'review.mp4' : 'short.mp4'), layout, fast); // 3) edit last
