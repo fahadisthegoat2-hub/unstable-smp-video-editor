@@ -14,12 +14,21 @@ The user only sends the video (or a  Everything else is automatic. Scripts: `${C
 story order, payoff last) + `<out>/sheets/*.png`. Read EVERY sheet: write down who is on screen (nametags, skins, chat), where,
 and what happens in each segment. That is the footage truth (`script.footage`).
 
-## 2. RESEARCH — real Unstable SMP lore only (never from memory)
-- WebSearch (mode "extended") for "Unstable SMP" + every player/place/event seen in the sheets, then WebFetch the pages
-  (the Unstable SMP wiki, the creators' own videos/descriptions, Reddit/news recaps). Prefer the wiki and the creators.
-- Save `<out>/lore.json`: `{ "facts": [{ "id": "f1", "fact": "<one sentence, as written on the page>", "source": "<url>" }] }`.
-  Only facts you actually read on a fetched page. If a name or event can't be confirmed, it does not go in the video.
-- Tie the footage to the lore: which arc/conflict/relationship is this clip part of?
+## 2. RESEARCH — the LATEST real Unstable SMP lore + current theories (never from memory, never old)
+The story moves every week: always research fresh, newest first, even if an older lore.json exists.
+- FIRST find the newest episode: WebSearch (mode "extended") "Unstable SMP latest episode <current month year>", the wiki's
+  Episode Order page, Parrot's / the creators' newest uploads. Record it as `latest`. Then search every player/place/event seen in the
+  sheets + "<month year>" so you get where each one stands NOW (alliances flip, people die, kingdoms fall).
+- Then current THEORIES: Reddit (r/UnstableSMP), recap/theory videos, wiki discussions from the last few weeks.
+- WebFetch pages when the network allows (prefer the wiki and the creators); if a host is blocked, use the search-result text
+  (it quotes the page) and cite that page's URL.
+- Tie the footage to the NEWEST arc: an old clip is narrated as what it led to / what it means now ("this is the army that just…").
+- Save `<out>/lore.json`:
+  `{ "researched": "<today YYYY-MM-DD>", "latest": { "episode": 161, "title": "…", "date": "…", "source": "<url>" },
+     "facts": [{ "id": "f1", "kind": "canon" | "theory", "date": "<source date>", "fact": "<one sentence, as written>", "source": "<url>" }] }`
+  Only facts you actually read. Canon = what happened on screen; theory = fan speculation (label it).
+- lore_check refuses: research older than 3 days, no `latest`, a name/number not in the cited facts, or a theory stated as fact
+  (theory lines must say "fans think…", "theory:", or be a question). One theory line near the end is a great comment-bait hook.
 
 ## 3. SCRIPT — narration that matches the clip, built for retention
 `<out>/script.json`:
@@ -51,7 +60,8 @@ and what happens in each segment. That is the footage truth (`script.footage`).
 - `"publish"` in script.json (the publish pack): `{ "titles": [3 options, ≤ 60 chars, not all caps], "best": 0, "description": "line 1 = hook + topic words (≤ 150 chars)\n…",
   "hashtags": ["unstablesmp", …≤ 3], "tags": ["unstable smp", …], "pinned": "a question viewers want to answer?", "thumb": "2–3 WORDS", "related": "…" }`
   Titles/description use only researched lore. Thumbnail text must not repeat the title.
-- `node lore_check.js script.json lore.json` must print LORE PASS (every line cites facts; every name/number is in its facts).
+- `node lore_check.js script.json lore.json` must print LORE PASS (fresh research, every line cites facts, every name/number is in
+  its facts, theories hedged). Build the story on the newest canon; use a theory for the twist / loop / pinned question.
 
 ## 4. FINISH — one command
 `node smp.js <video> --script <out>/script.json --lore <out>/lore.json [--layout blur|crop] [--accent #hex]`

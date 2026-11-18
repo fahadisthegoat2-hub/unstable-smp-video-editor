@@ -3,5 +3,5 @@ description: Send an SMP video, get back a finished short (real lore, voice, cap
 argument-hint: <video path or CapCut project name> 
 ---
 Use the `smp-shorts` skill on: $ARGUMENTS
-Run all 5 steps without asking anything: plan + read every sheet → research real Unstable SMP lore (web, sources) → script.json
+Run all 5 steps without asking anything: plan + read every sheet → research the LATEST Unstable SMP lore — newest episode first — plus current fan theories (web, sources, dated) → script.json
 with LORE PASS + publish pack → smp.js finish (3 review rounds) → read the review sheets, fix, rerun until clean → publish the device-render artifact. Reply only with the link.
