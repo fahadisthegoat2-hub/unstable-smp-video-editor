@@ -75,8 +75,9 @@ a boring stretch, a weak hook? Fix script.json/edit.json and rerun. finalIssues 
 
 ## 5. DELIVER — artifact that renders on the user's device
 Publish `<out>/artifact/index.html` with the Artifact tool: `files` = the printed map, `capabilities: { downloads: true }`, icon "video"
-(one publish sends ≤ 64 MB: if it is refused, publish the files in two calls to the same file path — preview.mp4 + thumbnail.png second).
-The page opens on the finished edit with sound (preview.mp4, plays everywhere incl. iPad). The ⬇ Render button reads the device's
+(one publish sends ≤ 64 MB: if it is refused, publish the files in two calls to the same file path — video.mp4 + thumbnail.png second).
+The page opens on the finished edit with sound: video.mp4 = a ready 1080p two-pass export (≤ 14.5 MB) saved in one tap with
+⬇ Save MP4 — instant, like a CapCut export. Optional ✨ Max quality renders on the device: it reads the device's
 cores/RAM/GPU, picks the best quality it can encode (Good 1080p30 · High 1080p60 · Epic 1440p60), redraws every 2D/3D graphic crisp at that
 resolution (3D with motion blur), encodes the MP4 there with WebCodecs and shows it with a Save button. The page also has a 📦 Publish pack button: thumbnail (save), titles, description + hashtags, tags, pinned comment (copy buttons). Reply with the link only.
 

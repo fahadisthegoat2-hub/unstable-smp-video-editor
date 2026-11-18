@@ -11,6 +11,10 @@ canvas#view{height:min(100%,calc((100vw - 24px) * 16 / 9));aspect-ratio:9/16;bor
 video{display:none}
 #pv{display:block;height:min(100%,calc((100vw - 24px) * 16 / 9));aspect-ratio:9/16;border-radius:14px;background:#000;box-shadow:0 10px 40px #0008}
 body.haspv canvas#view{display:none}
+#sv{position:fixed;right:12px;top:34px;z-index:20;padding:9px 14px;border-radius:10px;border:0;background:#22d3ee;color:#04202a;font-weight:800;cursor:pointer}
+body.haspv #mf-panel{display:none} body.haspv.hq #mf-panel{display:block}
+#hq{position:fixed;right:12px;bottom:12px;z-index:20;padding:7px 12px;border-radius:9px;border:1px solid #ffffff33;background:rgba(10,20,35,.8);color:#fff;font-weight:600;cursor:pointer}
+body.hq #hq{display:none}
 #pp{position:fixed;left:12px;top:34px;z-index:20;padding:9px 14px;border-radius:10px;border:0;background:var(--accent);color:#111;font-weight:800;cursor:pointer}
 #ppm{position:fixed;inset:0;z-index:10001;background:rgba(6,10,18,.92);overflow:auto;padding:16px}
 #ppm .box{max-width:560px;margin:0 auto;background:#151922;border-radius:14px;padding:16px 16px 20px;position:relative}
@@ -32,7 +36,14 @@ const EDIT = __EDIT__;
 if (EDIT.preview) { // the finished edit (voice + music + graphics), ready to watch with sound — the device render below makes the full-quality file
   document.body.classList.add('haspv'); const pv = Object.assign(document.createElement('video'), { id: 'pv', src: EDIT.preview, controls: true, playsInline: true, preload: 'auto' });
   pv.setAttribute('playsinline', ''); if (EDIT.publish?.thumb) pv.poster = EDIT.publish.thumb; document.getElementById('stage').appendChild(pv);
-  document.getElementById('hint').textContent = '▶ Play for the edit with sound · ⬇ Render below saves the full-quality MP4';
+  document.getElementById('hint').textContent = '▶ Play to watch with sound · ⬇ Save MP4 = ready 1080p file, instant (like a CapCut export)';
+  const sv = Object.assign(document.createElement('button'), { id: 'sv', textContent: '⬇ Save MP4 (1080p)' }); document.body.appendChild(sv);
+  sv.onclick = async () => { sv.textContent = 'Saving…'; try { const blob = await (await fetch(EDIT.preview)).blob(); let dl = null; try { dl = await window.claude?.use?.('downloads'); } catch {}
+      const name = (document.title || 'smp-short').replace(/[^\w-]+/g, '-').toLowerCase() + '.mp4';
+      if (dl) { await dl.save({ filename: name, data: blob }); } else { const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: name }); a.click(); }
+      sv.textContent = 'Saved ✓'; } catch (e) { sv.textContent = 'Save failed — long-press the video'; } };
+  const hq = Object.assign(document.createElement('button'), { id: 'hq', textContent: '✨ Max quality (renders on this device, slower)' }); document.body.appendChild(hq);
+  hq.onclick = () => document.body.classList.add('hq');
   addEventListener('DOMContentLoaded', () => { const b = document.getElementById('mf-play'); if (b) b.style.display = 'none'; });
 }
 const cv = document.getElementById('view'), ctx = cv.getContext('2d');
