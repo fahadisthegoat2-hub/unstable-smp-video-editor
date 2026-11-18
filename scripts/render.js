@@ -16,22 +16,37 @@ function cutFilters(edit, layout) {
   f.push(`${edit.segments.map((_, i) => `[v${i}]`).join('')}concat=n=${edit.segments.length}:v=1:a=0[cv]`);
   return f;
 }
+const STAGE = 14; // graphics composited per ffmpeg pass → memory stays flat however many graphics an edit has
+function overlays(list, inBase, firstInput, f) { // adds overlay filters for `list` onto label inBase → returns the last label
+  let last = inBase;
+  list.forEach((g, k) => { const idx = firstInput + k, lb = `o${idx}`;
+    f.push(`[${idx}:v]format=rgba,setpts=PTS-STARTPTS+${g.at}/TB[g${idx}]`, `[${last}][g${idx}]overlay=0:0:eof_action=pass:format=auto:enable='between(t,${g.at},${(g.at + g.dur).toFixed(3)})'[${lb}]`);
+    last = lb; });
+  return last;
+}
+const gin = (g) => ['-threads', '1', '-thread_queue_size', '8', '-i', g.file];
 async function renderShort(edit, out, layout = 'blur', fast = false, opts = {}) {
-  const args = ['-y', '-hide_banner', '-loglevel', 'error', '-i', edit.source], f = cutFilters(edit, layout);
-  let last = 'cv', n = 1;
-  if (!opts.base) edit.graphics.filter((g) => g.file && fs.existsSync(g.file)).forEach((g, k) => {
-    args.push('-threads', '1', '-thread_queue_size', '4', '-i', g.file); const idx = n++;
-    f.push(`[${idx}:v]setpts=PTS-STARTPTS+${g.at}/TB[g${k}]`, `[${last}][g${k}]overlay=0:0:eof_action=pass:enable='between(t,${g.at},${(g.at + g.dur).toFixed(3)})'[o${k}]`);
-    last = `o${k}`;
-  });
-  const mix = !opts.base && edit.mix && fs.existsSync(edit.mix) ? n++ : null;
-  if (mix) args.push('-i', edit.mix);
-  args.push('-filter_complex', f.join(';'), '-map', `[${last}]`);
-  if (mix) args.push('-map', `${mix}:a`, '-c:a', 'aac', '-b:a', '192k'); else args.push('-an');
-  const br = opts.bitrate ? ['-b:v', opts.bitrate, '-maxrate', opts.bitrate, '-bufsize', opts.bitrate, '-g', '30'] : ['-crf', fast ? '28' : '17'];
-  args.push('-c:v', 'libx264', '-preset', fast ? 'ultrafast' : 'slow', ...br, '-pix_fmt', 'yuv420p', '-r', '30', '-t', String(edit.duration), '-movflags', '+faststart', out);
-  log(`rendering ${path.basename(out)} (${edit.duration.toFixed(1)} s, ${edit.segments.length} cuts${opts.base ? ', picture only' : `, ${edit.graphics.length} graphics`})…`);
-  await run(args);
+  const gs = opts.base ? [] : edit.graphics.filter((g) => g.file && fs.existsSync(g.file)).sort((a, b) => (a.type === 'words') - (b.type === 'words') || a.at - b.at);
+  const enc = (o, final) => { const br = opts.bitrate ? ['-b:v', opts.bitrate, '-maxrate', opts.bitrate, '-bufsize', opts.bitrate, '-g', '30'] : ['-crf', final ? (fast ? '28' : '17') : '10'];
+    return ['-c:v', 'libx264', '-preset', final && !fast ? 'slow' : 'ultrafast', ...br, '-pix_fmt', 'yuv420p', '-r', '30', '-t', String(edit.duration), '-movflags', '+faststart', o]; };
+  log(`rendering ${path.basename(out)} (${edit.duration.toFixed(1)} s, ${edit.segments.length} cuts${opts.base ? ', picture only' : `, ${gs.length} graphics`})…`);
+  const tmp = []; let src = null, rest = gs;
+  try {
+    do { // stage: (cut footage | previous stage) + up to STAGE graphics
+      const batch = rest.slice(0, STAGE); rest = rest.slice(STAGE); const final = rest.length === 0;
+      const args = ['-y', '-hide_banner', '-loglevel', 'error'], f = [];
+      let base;
+      if (!src) { args.push('-i', edit.source); f.push(...cutFilters(edit, layout)); base = 'cv'; } else { args.push('-i', src); f.push('[0:v]null[cv]'); base = 'cv'; }
+      batch.forEach((g) => args.push(...gin(g)));
+      const last = overlays(batch, base, 1, f), n = 1 + batch.length;
+      const mix = final && !opts.base && edit.mix && fs.existsSync(edit.mix);
+      if (mix) args.push('-i', edit.mix);
+      args.push('-filter_complex', f.join(';'), '-map', `[${last}]`);
+      if (mix) args.push('-map', `${n}:a`, '-c:a', 'aac', '-b:a', '192k'); else args.push('-an');
+      const o = final ? out : out.replace(/\.mp4$/, `.stage${tmp.length}.mp4`); if (!final) tmp.push(o);
+      await run([...args, ...enc(o, final)]); src = o;
+    } while (rest.length);
+  } finally { tmp.forEach((t) => fs.rmSync(t, { force: true })); }
   return out;
 }
 if (require.main === module) {

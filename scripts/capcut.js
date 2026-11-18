@@ -8,6 +8,10 @@ const fs = require('fs'), path = require('path'), os = require('os'), crypto = r
 const { arg, flag, log, ffprobeJSON } = require('./lib/util');
 
 const US = 1e6, uid = () => crypto.randomUUID().toUpperCase();
+function prores(f) { // library layers are PNG-in-MOV; CapCut wants ProRes 4444 with alpha → convert once, next to the cached layer
+  const o = f.replace(/\.mov$/, '.prores.mov'); if (fs.existsSync(o)) return o;
+  require('child_process').execFileSync('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', f, '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-vendor', 'apl0', o]); return o;
+}
 function draftsRoot() {
   const own = arg('drafts') || process.env.CAPCUT_DRAFTS; if (own) return own;
   const h = os.homedir(), L = process.env.LOCALAPPDATA || path.join(h, 'AppData', 'Local');
@@ -66,7 +70,7 @@ function buildDraft(edit, name, layout) {
     tracks.push({ id: uid(), type: 'audio', attribute: 0, flag: 0, is_default_name: true, name: '', segments: [seg] });
   }
   edit.graphics.filter((g) => g.file).forEach((g, k) => {
-    const info = ffprobeJSON(g.file), m = videoMat(g.file, { ...info, hasAudio: false }); mats.videos.push(m);
+    const file = prores(g.file), info = ffprobeJSON(file), m = videoMat(file, { ...info, hasAudio: false }); mats.videos.push(m);
     // Graphics stack on their own tracks so overlapping ones never collide.
     let t = tracks.slice(1).find((x) => x.type === 'video' && !x.segments.some((s) => g.at * US < s.target_timerange.start + s.target_timerange.duration && (g.at + g.dur) * US > s.target_timerange.start));
     if (!t) { t = { id: uid(), type: 'video', attribute: 0, flag: 0, is_default_name: true, name: '', segments: [] }; tracks.push(t); }

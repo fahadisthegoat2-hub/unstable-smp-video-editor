@@ -10,7 +10,7 @@ const fs = require('fs'), path = require('path'), { spawnSync } = require('child
 const { arg, flag, log } = require('./lib/util');
 const { analyze, buildGraphics } = require('./highlights'), { renderGraphics } = require('./mograph'), { renderShort } = require('./render');
 const { scan } = require('./scan'), { buildMix } = require('./mix'), { pack } = require('./pack'), { check } = require('./lore_check');
-const cc = require('./capcut'), { measure, check: review, improve, MAXLEN } = require('./review'), { publishPack } = require('./publish');
+const lib = require('./mglib'), cc = require('./capcut'), { measure, check: review, improve, MAXLEN } = require('./review'), { publishPack } = require('./publish');
 
 function fitEdit(edit, target) { // stretch/trim the clips so the edit ends ~1 s after the voice
   const src = edit.info.duration, body = edit.segments.filter((s) => s.role !== 'hook');
@@ -37,7 +37,8 @@ function voiceGraphics(edit, vo, script) {
   // per-line designed graphics from the script (nametag / lore / stamp / counter / pop / marker / chapter / glitch)
   (script.lines || []).forEach((l, i) => {
     const ln = vo.lines[i]; if (!ln) return;
-    for (const x of l.gfx || []) g.push({ dur: x.type === 'stamp' ? 1.4 : 2.4, ...x, at: +Math.max(2.3, ln.start + (x.offset || 0)).toFixed(3) }); // never under the hook title
+    for (const x0 of l.gfx || []) { const x = x0.preset ? { ...lib.preset(x0.preset), ...x0 } : x0; // reuse a saved graphic from the library by name
+      g.push({ dur: x.type === 'stamp' ? 1.4 : 2.4, ...x, at: +Math.max(2.3, ln.start + (x.offset || 0)).toFixed(3) }); } // never under the hook title
     if (['shout', 'dramatic', 'angry'].includes(l.tone)) g.push({ type: 'flash', at: ln.start, dur: 0.4 });
   });
   g.sort((a, b) => a.at - b.at);
@@ -77,8 +78,8 @@ function voice(dir, scriptFile, v) {
   const vo = voice(path.join(out, 'voice'), scriptFile, arg('voice')); log(`voiceover ${vo.duration}s (${vo.voice})`);
   if (vo.duration > MAXLEN - 1) throw new Error(`voiceover is ${vo.duration}s — the short is capped at ${MAXLEN}s: cut lines to ≤ ${MAXLEN - 1}s of speech`);
   fitEdit(edit, Math.min(MAXLEN, Math.max(8, vo.duration + 1.0)));
-  const title = arg('title') || script.title || edit.graphics.find((g) => g.type === 'hook')?.text;
-  Object.assign(edit, buildGraphics(edit.segments, [], title, true), { accent: arg('accent', edit.accent), vo: path.join(out, 'voice', 'vo.wav'), quality: arg('quality') });
+  const title = arg('title') || script.title || edit.graphics.find((g) => g.type === 'hook' || g.type === 'blocktitle')?.text;
+  Object.assign(edit, buildGraphics(edit.segments, [], title, true), { accent: arg('accent', edit.accent), vo: path.join(out, 'voice', 'vo.wav'), quality: arg('quality'), project: name });
   edit.graphics = edit.graphics.filter((g) => g.type !== 'pop' || !(script.lines || []).some((l) => (l.gfx || []).length)); // designed graphics replace generic pops
   voiceGraphics(edit, vo, script);
   const target = Math.min(MAXLEN, Math.max(8, vo.duration + 1.0));
@@ -110,6 +111,6 @@ function voice(dir, scriptFile, v) {
   const pub = await publishPack(edit, script, out);
   const res = { step: 'finish', short: fin.mp4, duration: edit.duration, review: log3.map((r) => `${r.round}: ${r.fails.length} issues`), finalIssues: fin.fails.map((f) => f.msg), sheets: log3.map((r) => r.sheet), publish: pub.check, publishMd: pub.md, thumbnail: pub.thumb };
   if (flag('capcut')) res.capcut = cc.writeProject(edit, name, { overwrite: flag('overwrite'), layout });
-  res.artifact = await pack(edit, path.join(out, 'artifact'), title, layout, pub);
+  res.artifact = await pack(edit, path.join(out, 'artifact'), title, layout, pub, fin.mp4);
   console.log(JSON.stringify(res, null, 1));
 })().catch((e) => { console.error(e.message); process.exit(1); });

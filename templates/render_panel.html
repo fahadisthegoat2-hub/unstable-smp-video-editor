@@ -7,7 +7,7 @@
   <label>Quality <select id="mf-q" style="width:100%;margin:4px 0 8px;padding:4px;border-radius:6px"></select></label>
   <label id="mf-chl" style="display:none">Part <select id="mf-ch" style="width:100%;margin:4px 0 8px;padding:4px;border-radius:6px"></select></label>
   <button id="mf-play" style="width:100%;padding:7px;border:1px solid #ffffff33;border-radius:8px;background:transparent;color:#fff;font-weight:600;cursor:pointer;margin-bottom:6px">▶ Preview with sound</button>
-  <button id="mf-go" style="width:100%;padding:8px;border:0;border-radius:8px;background:#22d3ee;color:#04202a;font-weight:700;cursor:pointer">Render MP4</button>
+  <button id="mf-go" style="width:100%;padding:8px;border:0;border-radius:8px;background:#22d3ee;color:#04202a;font-weight:700;cursor:pointer">⬇ Render full-quality MP4</button>
   <div id="mf-bar" style="height:6px;background:#ffffff22;border-radius:3px;margin-top:8px;overflow:hidden"><div style="height:100%;width:0;background:#22d3ee"></div></div>
   <div id="mf-msg" style="font-size:12px;margin-top:6px;opacity:.85"></div>
 </div>
@@ -33,7 +33,7 @@ const presets = [
 const dims = (p) => [Math.round(W * p.s / 2) * 2, Math.round(H * p.s / 2) * 2];
 $('mf-q').add(new Option('Choose quality…', ''));
 presets.forEach((p, i) => { const [w, h] = dims(p); $('mf-q').add(new Option(`${p.name} — ${w}×${h} @ ${p.fps}fps` + (i === tier ? '  ★ best for your device' : ''), i)); });
-$('mf-q').value = '';
+$('mf-q').value = String(tier);
 
 // Parts (chapters) for long-form
 const chapters = Array.isArray(base.chapters) && base.chapters.length ? base.chapters : null;
@@ -122,7 +122,7 @@ $('mf-play').onclick = async () => {
   const mf = window.__mf; if (!mf?.soundtrack) return;
   if (liveAudio) { liveAudio.ctx.close(); liveAudio = null; $('mf-play').textContent = '▶ Preview with sound'; return; }
   $('mf-play').textContent = 'Preparing sound…';
-  try { const buf = await mf.soundtrack(), ctx = new AudioContext(), src = ctx.createBufferSource(); src.buffer = buf; src.loop = true; src.loopEnd = mf.duration; src.connect(ctx.destination);
+  try { const ctx = new AudioContext(); ctx.resume?.(); const buf = await mf.soundtrack(), src = ctx.createBufferSource(); // made inside the tap → iOS plays it src.buffer = buf; src.loop = true; src.loopEnd = mf.duration; src.connect(ctx.destination);
     mf.restart?.(); src.start(); liveAudio = { ctx }; $('mf-play').textContent = '■ Stop preview'; } catch (e) { $('mf-play').textContent = '▶ Preview with sound'; msg('Sound preview failed: ' + (e.message || e)); }
 };
 let busy = false;
@@ -152,6 +152,7 @@ async function run(isAuto) {
     : sel === 'all' ? chapters.map((c, i) => ({ start: c.start, end: c.end, label: `Part ${i + 1}` }))
     : [{ start: chapters[sel].start, end: chapters[sel].end, label: `Part ${+sel + 1}` }];
 
+  if (window.MG) MG.blur = 2; // motion blur on the 3D graphics in the export
   window.__mfManual = true; $('mf-go').disabled = true; $('mf-panel').style.opacity = isAuto ? 1 : .35;
   const canvas = mf.canvas || document.querySelector('canvas');
   mf.setSize ? mf.setSize(w, h) : (canvas.width = w, canvas.height = h);
@@ -165,9 +166,9 @@ async function run(isAuto) {
     msg(`Done in ${((performance.now() - t0) / 1000).toFixed(0)}s — ${jobs.length > 1 ? jobs.length + ' MP4 parts' : 'MP4'} ready.` +
       (jobs.length > 1 ? ' Join them in CapCut or iMovie in order.' : ''));
     showResults(((performance.now() - t0) / 1000).toFixed(0));
-  } catch (e) { closeOpen(); keepAwake(false); busy = false; window.__mfManual = false; $('mf-go').disabled = false; $('mf-panel').style.opacity = 1; dispatchEvent(new Event('resize'));
+  } catch (e) { if (window.MG) MG.blur = 1; closeOpen(); keepAwake(false); busy = false; window.__mfManual = false; $('mf-go').disabled = false; $('mf-panel').style.opacity = 1; dispatchEvent(new Event('resize'));
     if (!lower()) msg('Render stopped: ' + (e.message || e) + ' — try a lower quality or one part at a time.'); return; }
-  closeOpen(); keepAwake(false); busy = false; window.__mfManual = false; $('mf-go').disabled = false; $('mf-panel').style.opacity = 1;
+  closeOpen(); keepAwake(false); busy = false; window.__mfManual = false; $('mf-go').disabled = false; $('mf-panel').style.opacity = 1; if (window.MG) MG.blur = 1;
   dispatchEvent(new Event('resize'));
 }
 // AUTO-RENDER: as soon as the scene has loaded, the page renders the MP4 by itself on this device — at the quality chosen for the video

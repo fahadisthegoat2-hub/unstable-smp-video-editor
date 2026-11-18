@@ -73,7 +73,7 @@ const TYPES = {
   words(t, d) { // voiceover karaoke captions: 1–3 word groups, live word in accent, pop on each word
     const ws = G.words || []; let i = ws.findIndex((w) => t >= w.start - G.at && t < w.end - G.at + 0.12);
     if (i < 0) return; const gi = Math.floor(i / 3) * 3, grp = ws.slice(gi, gi + 3);
-    const size = 104; g.font = `900 ${size}px ${FONT}`;
+    const size = 92; g.font = `900 ${size}px ${FONT}`;
     const parts = grp.map((w) => w.w.toUpperCase().replace(/[^A-Z0-9'!?.,&-]/g, '')), sp = 28;
     const widths = parts.map((p) => g.measureText(p).width), tot = widths.reduce((a, b) => a + b, 0) + sp * (parts.length - 1), fit = Math.min(1, 960 / tot);
     let x = W / 2 - tot * fit / 2;
@@ -207,5 +207,7 @@ const TYPES = {
   },
 };
 
-window.MG = { types: Object.keys(TYPES), draw(ctx, gr, t, accent) { g = ctx; G = gr; ACC = accent || ACC; ctx.save(); (TYPES[gr.type] || TYPES.pop)(t, gr.dur); ctx.restore(); ctx.globalAlpha = 1; } };
+window.MG = { types: Object.keys(TYPES), blur: 1,
+  register(name, fn) { TYPES[name] = fn; if (!this.types.includes(name)) this.types.push(name); },
+  draw(ctx, gr, t, accent) { g = ctx; G = gr; ACC = accent || ACC; ctx.save(); (TYPES[gr.type] || TYPES.pop)(t, gr.dur, ctx, gr, ACC); ctx.restore(); ctx.globalAlpha = 1; } };
 })();

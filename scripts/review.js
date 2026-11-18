@@ -3,7 +3,7 @@
 // · pacing (no shot > 3 s, a pattern interrupt at least every 2.5 s, no dead air) · graphics never collide · loudness −14 LUFS ±1.5.
 const fs = require('fs'), path = require('path');
 const { run } = require('./lib/util');
-const ZONE = { hook: 'top', lore: 'top', chapter: 'top', nametag: 'mid', stamp: 'mid', pop: 'mid', counter: 'mid', marker: 'mid', crown: 'crown', dims: 'low', bar: 'low', march: 'low', cta: 'low', caption: 'cap', words: 'cap' };
+const ZONE = { hook: 'top', blocktitle: 'top', nametag3d: 'mid', crown3d: 'crown', map3d: 'low', blocks3d: 'low', ingots3d: 'low', portal3d: 'fx', cage3d: 'fx', sword3d: 'fx', explode3d: 'fx2', lore: 'top', chapter: 'top', nametag: 'mid', stamp: 'mid', pop: 'mid', counter: 'mid', marker: 'mid', crown: 'crown', dims: 'low', bar: 'low', march: 'low', cta: 'low', caption: 'cap', words: 'cap' };
 const MAXSHOT = 3.0, GAP = 2.5, MAXLEN = 45;
 
 async function measure(mp4) {
@@ -17,9 +17,10 @@ function check(edit, vo, m) {
   if (edit.duration > MAXLEN) f.push({ k: 'length', msg: `${edit.duration.toFixed(1)} s > ${MAXLEN} s` });
   const hookSeg = edit.segments[0];
   if (hookSeg.role !== 'hook' || hookSeg.out - hookSeg.in > 2.2) f.push({ k: 'hook', msg: 'frame 1 is not a ≤ 2 s teaser of the best moment' });
-  if (!g.some((x) => x.type === 'hook' && x.at < 0.1)) f.push({ k: 'hook', msg: 'no hook title on frame 1' });
+  if (!g.some((x) => (x.type === 'hook' || x.type === 'blocktitle') && x.at < 0.1)) f.push({ k: 'hook', msg: 'no hook title on frame 1' });
   if (vo && vo.words[0]?.start > 0.4) f.push({ k: 'hook', msg: `voice starts late (${vo.words[0].start}s)` });
-  for (const [t, why] of [['nametag', 'who is this (nametag)'], ['stamp', 'payoff stamp'], ['cta', 'ending CTA/loop']]) if (!g.some((x) => x.type === t)) f.push({ k: 'structure', msg: `missing ${why}` });
+  const HAS = { nametag: ['nametag', 'nametag3d'], payoff: ['stamp', 'cage3d', 'sword3d', 'explode3d', 'crown3d', 'portal3d', 'map3d', 'bolt'], cta: ['cta'] };
+  for (const [t, why] of [['nametag', 'who is this (nametag)'], ['payoff', 'payoff hit (stamp or a 3D impact)'], ['cta', 'ending CTA/loop']]) if (!g.some((x) => HAS[t].includes(x.type))) f.push({ k: 'structure', msg: `missing ${why}` });
   let t = 0;
   edit.segments.forEach((s, i) => { const d = s.out - s.in; if (d > MAXSHOT + 0.01) f.push({ k: 'pacing', msg: `shot ${i} is ${d.toFixed(1)} s`, i }); ev.push(t); t += d; });
   ev.push(...g.filter((x) => x.type !== 'words').map((x) => x.at)); ev.sort((a, b) => a - b); ev.push(edit.duration);
@@ -50,7 +51,8 @@ function improve(edit, fails, vo, round) {
   // dead stretches: a pop of the strongest spoken word there (or an impact flash)
   for (const x of fails.filter((x) => x.k === 'interrupt')) {
     const mid = (x.a + x.b) / 2, w = vo?.words.filter((w) => w.start > x.a + 0.4 && w.start < x.b - 0.4).sort((p, q) => q.w.length - p.w.length)[0];
-    edit.graphics.push(w && w.w.replace(/\W/g, '').length > 3 ? { type: 'pop', text: w.w.replace(/[^\w'!?]/g, '').toUpperCase(), at: +w.start.toFixed(3), dur: 1.1 } : { type: 'flash', at: +mid.toFixed(3), dur: 0.4 });
+    const at = +(w ? w.start : mid).toFixed(3), n = edit.graphics.length; // a visual hit, never more text
+    edit.graphics.push([{ type: 'explode3d', at, dur: 1.0, count: 40 }, { type: 'focus', at, dur: 0.9 }, { type: 'shockwave', at, dur: 0.9 }][n % 3]);
   }
   if (fails.some((x) => x.k === 'interrupt')) done.push('pattern interrupts added');
   if (fails.some((x) => x.k === 'hook') && edit.segments[0].role === 'hook') { const h = edit.segments[0]; h.in = +(h.peak - 0.8).toFixed(3); h.out = +(h.peak + 0.6).toFixed(3); done.push('tighter hook teaser'); }

@@ -91,16 +91,14 @@ function buildGraphics(segments, subs = [], titleIn, vo) {
   let t = 0;
   for (const s of segments) { s.at = +t.toFixed(3); t += s.out - s.in; }
   const dur = +t.toFixed(3), title = (titleIn || 'THIS WENT WRONG…').toUpperCase();
-  const graphics = [{ type: 'hook', text: title, at: 0, dur: 2.2 }];
+  const graphics = [{ type: 'blocktitle', text: title, at: 0, dur: 2.4 }]; // 3D voxel title (mg3d.js)
   segments.forEach((s, k) => {
     if (k === 0) return;
-    graphics.push({ type: k % 2 ? 'glitch' : 'flash', at: Math.max(0, s.at - 0.06), dur: 0.32 }); // cut transition
+    if (k % 2) graphics.push({ type: k % 4 === 1 ? 'glitch' : 'flash', at: Math.max(0, s.at - 0.06), dur: 0.26 }); // transition on every other cut (no strobing)
     const pk = s.at + (s.peak - s.in);
-    graphics.push({ type: 'flash', at: Math.max(0, pk - 0.12), dur: 0.5 });
+    if (s.role === 'payoff') graphics.push({ type: 'flash', at: Math.max(0, pk - 0.12), dur: 0.5 });
     const line = subs.find((x) => x.hype && x.start <= s.peak + 1 && x.end >= s.peak - 1);
     graphics.push({ type: 'pop', text: (line ? line.text.split(' ').slice(0, 3).join(' ') : ['NO WAY', 'WAIT…', 'BRO?!', 'RUN!', 'OH NO', 'WHAT?!'][k % 6]).toUpperCase(), at: pk, dur: 1.3 });
-    if (s.role === 'payoff') graphics.push({ type: 'marker', at: pk + 0.2, dur: 1.6, x: 0.5, y: 0.46 });
-    if (k > 1 && k % 3 === 0) graphics.push({ type: 'chapter', text: 'MEANWHILE…', at: s.at, dur: 1.2 });
   });
   if (!vo) // voiceover captions replace subtitle captions
   // Captions from subtitles, mapped into edit time.
